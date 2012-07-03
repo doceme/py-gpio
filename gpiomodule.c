@@ -206,26 +206,27 @@ static void t_bootstrap(void* rawself)
 		for (i = 0; i < global_nfds; i++) {
 			if (global_pfd[i].revents != 0) {
 				lseek(global_pfd[i].fd, 0, SEEK_SET);
-				if (read(global_pfd[i].fd, &buf, 1 ) != 1) {
-					PyErr_SetFromErrno(PyExc_IOError);
-					break;
-				}
-				res = NULL;
-				args = Py_BuildValue("(i)", buf - 48); // we got ASCII '0'
 				callback = get_poll_cb(global_pfd[i].fd)->callback;
-				PyGILState_STATE s = PyGILState_Ensure();
-				res = PyObject_CallObject(callback, args);
-				PyGILState_Release(s);
-				Py_DECREF(args);
-				if (res == NULL) {
-					Py_XDECREF(res);
-					break; /* Pass error back */
-				}
+				if (callback) {
+					if (read(global_pfd[i].fd, &buf, 1 ) != 1) {
+						PyErr_SetFromErrno(PyExc_IOError);
+						break;
+					}
+					args = Py_BuildValue("(i)", buf - 48); // we got ASCII '0'
+					PyGILState_STATE s = PyGILState_Ensure();
+					res = PyObject_CallObject(callback, args);
+					PyGILState_Release(s);
+					Py_DECREF(args);
+					if (res == NULL) {
+						Py_XDECREF(res);
+						break; /* Pass error back */
+					}
 
-				/* Here maybe use res
-				  maybe exit loop at some defined return value (i.e. res == -1)
-				 */
-				Py_DECREF(res);
+					/* Here maybe use res
+					  maybe exit loop at some defined return value (i.e. res == -1)
+					 */
+					Py_DECREF(res);
+				}
 			}
 		}
 	}
