@@ -122,7 +122,8 @@ static struct poll_cb_info * get_poll_cb(int fd) {
 	poll_cb_info_iterator = global_poll_cb_info;
 
 	while (poll_cb_info_iterator != NULL) {
-		if (poll_cb_info_iterator->fd == fd) break;
+		if (poll_cb_info_iterator->fd == fd)
+			break;
 		poll_cb_info_iterator = poll_cb_info_iterator->next;
 	}
 	return poll_cb_info_iterator;
