@@ -172,6 +172,7 @@ static int add_poll_cb(PyObject * callback, int fd)
 	poll_cb_info_iterator->callback = callback;
 
 	global_pfd[global_nfds].fd = fd;
+	global_pfd[global_nfds].events = POLLPRI | POLLERR;
 	poll_cb_info_iterator->idx = global_nfds;
 	global_nfds++;
 //	printf("add_poll_cb() done; global_nfds now: %i\n", global_nfds);
@@ -215,10 +216,14 @@ static void t_bootstrap(void* rawself)
 	while (global_nfds > 0) {
 
 		Py_BEGIN_ALLOW_THREADS
-		retval = poll(global_pfd, global_nfds, 20);	// timeout to check if cb still set
+		retval = poll(global_pfd, global_nfds, -1);
 		Py_END_ALLOW_THREADS
 
-		if (retval == 0) continue;	// poll timed out
+		if (retval == 0) {
+			// poll shouldn't timeout
+			PyErr_SetFromErrno(PyExc_IOError);
+			break;
+		}
 
 		if (retval < 0) {
  			PyErr_SetFromErrno(PyExc_IOError);
@@ -253,7 +258,7 @@ static void t_bootstrap(void* rawself)
 				Py_DECREF(res);
 			}
 		}
-     	}
+	}
 	if (PyErr_Occurred()) {
 		if (PyErr_ExceptionMatches(PyExc_SystemExit))
 			PyErr_Clear();
